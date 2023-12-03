@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\public",
+    "\\src",
+    "\\src\\features",
+    "\\src\\features\\appbar",
+    "\\src\\features\\common",
+    "\\src\\features\\dialog",
+    "\\src\\features\\editor",
+    "\\src\\features\\login",
+    "\\src\\features\\user"
+  ],
+  "SelectedNode": "\\src\\features\\editor\\Editor.js",
+  "PreviewInSolutionExplorer": false
+}

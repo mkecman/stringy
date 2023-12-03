@@ -11,6 +11,8 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import Footer from '../appbar/Footer';
 import P5Renderer from './P5Renderer';
 import { cloneDeep } from 'lodash';
+import NumberInput from '../common/NumberInput';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 
 function Editor(props)
 {
@@ -23,7 +25,7 @@ function Editor(props)
             height: 800,
             pins_amount: 40,
             pins: [],
-            stringsDef: [{ index: 0, steps: 40, start_pin: 0, move_right: 14, color: 'red' }, { index: 1, steps: 40, start_pin: 0, move_right: 15, color: 'blue' }, { index: 2, steps: 40, start_pin: 0, move_right: 16, color: 'green' }],
+            stringsDef: [{ index: 0, steps: 40, start_pin: 0, ofset_1: 14, ofset_2: -13, color: 'red' }, { index: 1, steps: 40, start_pin: 0, ofset_1: 15, ofset_2: 15, color: 'blue' }],
             strings: [[{ x: 0, y: 0, color: 'red' }, { x: 10, y: 10, color: 'red' }]]
         });
     
@@ -66,9 +68,12 @@ function Editor(props)
             strings[stringDefIndex].push({ x: startPin.x, y: startPin.y, color: stringDef.color });
             let nextPin = {};
             let nextPinIndex = 0;
+            let ofset = 0;
             for (var p = 0; p < stringDef.steps; p++)
             {
-                nextPinIndex = (startPin.index + parseInt(stringDef.move_right)) % data.pins_amount;
+                p % 2 === 0 ? ofset = stringDef.ofset_1 : ofset = stringDef.ofset_2;
+                nextPinIndex = parseInt((startPin.index + parseInt(ofset)) % data.pins_amount);
+                if (nextPinIndex < 0) nextPinIndex = pins.length + nextPinIndex;
                 nextPin = pins[nextPinIndex];
                 strings[stringDefIndex].push({ x: nextPin.x, y: nextPin.y, color: stringDef.color });
                 startPin = nextPin;
@@ -93,6 +98,20 @@ function Editor(props)
         generate(p5);
     }
 
+    const onAddStringButtonClick = e =>
+    {
+        let p5 = { ...p5Data };
+        p5.stringsDef.push({ index: p5.stringsDef.length, steps: 40, start_pin: 0, ofset_1: 14, ofset_2: -13, color: 'red' });
+        generate(p5);
+    }
+
+    const onDeleteStringButtonClick = index =>
+    {
+        let p5 = { ...p5Data };
+        p5.stringsDef.splice(index, 1);
+        generate(p5);
+    }
+
     return (
         <div>
             <ResponsiveAppBar />
@@ -110,18 +129,23 @@ function Editor(props)
                         </div>
                     </Paper>
                     <Paper elevation={1}>
-                        <TextField label='width' defaultValue={p5Data.width} onBlur={e => onP5DataChange('width', e.target.value)} variant="standard" />
-                        <TextField label='height' defaultValue={p5Data.height} onBlur={e => onP5DataChange('height', e.target.value)} variant="standard" />
-                        <TextField label='pins' defaultValue={p5Data.pins_amount} onBlur={e => onP5DataChange('pins_amount', e.target.value)} variant="standard" />
+                        <TextField type='number' label='width' defaultValue={p5Data.width} onChange={e => onP5DataChange('width', e.target.value)} variant="standard" />
+                        <TextField type='number' label='height' defaultValue={p5Data.height} onChange={e => onP5DataChange('height', e.target.value)} variant="standard" />
+                        <TextField type='number' label='pins' defaultValue={p5Data.pins_amount} onChange={e => onP5DataChange('pins_amount', e.target.value)} variant="standard" />
                         {p5Data && p5Data.stringsDef.map(stringDef =>
                         {
                             return (<Paper elevation={3} key={stringDef.index}>
-                                <TextField label='steps' defaultValue={stringDef.steps} onBlur={e => onP5StringDefChange(stringDef.index, 'steps', e.target.value)} variant="standard" />
-                                <TextField label='start pin' defaultValue={stringDef.start_pin} onBlur={e => onP5StringDefChange(stringDef.index, 'start_pin', e.target.value)} variant="standard" />
-                                <TextField label='move right' defaultValue={stringDef.move_right} onBlur={e => onP5StringDefChange(stringDef.index, 'move_right', e.target.value)} variant="standard" />
-                                <TextField label='color' defaultValue={stringDef.color} onBlur={e => onP5StringDefChange(stringDef.index, 'color', e.target.value)} variant="standard" />
+                                <Stack direction="row">
+                                    <TextField type='number' label='steps' defaultValue={stringDef.steps} onChange={e => onP5StringDefChange(stringDef.index, 'steps', e.target.value)} variant="standard" />
+                                    <TextField type='number' label='start pin' defaultValue={stringDef.start_pin} onChange={e => onP5StringDefChange(stringDef.index, 'start_pin', e.target.value)} variant="standard" />
+                                    <TextField type='number' label='first ofset' defaultValue={stringDef.ofset_1} onChange={e => onP5StringDefChange(stringDef.index, 'ofset_1', e.target.value)} variant="standard" />
+                                    <TextField type='number' label='second ofset' defaultValue={stringDef.ofset_2} onChange={e => onP5StringDefChange(stringDef.index, 'ofset_2', e.target.value)} variant="standard" />
+                                    <TextField label='color' defaultValue={stringDef.color} onBlur={e => onP5StringDefChange(stringDef.index, 'color', e.target.value)} variant="standard" />
+                                    <Button onClick={e => onDeleteStringButtonClick(stringDef.index)}><HighlightOffIcon /></Button>
+                                </Stack>
                             </Paper>)
                         })}
+                        <Button onClick={onAddStringButtonClick}>Add new string</Button>
                     </Paper>
                 </Stack>
             </Container>
@@ -132,3 +156,4 @@ function Editor(props)
 }
 
 export default Editor;
+
