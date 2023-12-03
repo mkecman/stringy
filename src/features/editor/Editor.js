@@ -1,4 +1,4 @@
-import { Button, Container, Divider, Pagination, Paper, Stack, Table, TableContainer, TableHead, TableRow, TableCell, IconButton, TextField, Typography, Grid, Autocomplete } from '@mui/material';
+﻿import { Button, Container, Divider, Pagination, Paper, Stack, Table, TableContainer, TableHead, TableRow, TableCell, IconButton, TextField, Typography, Grid, Autocomplete } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 import { writeData, getListOrderByChildEndBeforeLimit, pushData, stopListening, getDataAsync, startListening, getSearchPatients, getPatientsProtocols, deleteData, getListOrderByChild, updateData, getTaskLogsForDate } from '../../app/firebase';
 import { withAuthentication } from '../login/withAuthentication';
@@ -21,9 +21,10 @@ function Editor(props)
         {
             width: 800,
             height: 800,
-            pins_amount: 60,
+            pins_amount: 40,
             pins: [],
-            strings: [[{ x: 0, y: 0 }, { x: 10, y: 10 }]]
+            stringsDef: [{ index: 0, steps: 40, start_pin: 0, move_right: 14, color: 'red' }, { index: 1, steps: 40, start_pin: 0, move_right: 15, color: 'blue' }, { index: 2, steps: 40, start_pin: 0, move_right: 16, color: 'green' }],
+            strings: [[{ x: 0, y: 0, color: 'red' }, { x: 10, y: 10, color: 'red' }]]
         });
     
     useEffect(() =>
@@ -46,16 +47,33 @@ function Editor(props)
 
         for (let i = 0; i < data.pins_amount; i++)
         {
-            let pointX1 = (radius * Math.cos(theta * i) + center);
-            let pointY1 = (radius * Math.sin(theta * i) + center);
+            // Start from -π/2 to align the 0 index at the top (12 o'clock position)
+            let angle = theta * i - Math.PI / 2;
+
+            let pointX1 = (radius * Math.cos(angle) + center);
+            let pointY1 = (radius * Math.sin(angle) + center);
             pins.push({ index: i, x: pointX1, y: pointY1, radius: 5 });
         }
         
         //generate Strings
         let strings = [];
-        strings.push({ x: 0, y: 0 });
-        strings.push({ x: 100, y: 100 });
+        for (var stringDefIndex = 0; stringDefIndex < data.stringsDef.length; stringDefIndex++)
+        {
+            let stringDef = data.stringsDef[stringDefIndex];
 
+            let startPin = pins[stringDef.start_pin];
+            strings.push([]);
+            strings[stringDefIndex].push({ x: startPin.x, y: startPin.y, color: stringDef.color });
+            let nextPin = {};
+            let nextPinIndex = 0;
+            for (var p = 0; p < stringDef.steps; p++)
+            {
+                nextPinIndex = (startPin.index + parseInt(stringDef.move_right)) % data.pins_amount;
+                nextPin = pins[nextPinIndex];
+                strings[stringDefIndex].push({ x: nextPin.x, y: nextPin.y, color: stringDef.color });
+                startPin = nextPin;
+            }
+        }
         data.pins = pins;
         data.strings = strings;
         setP5Data(data);
@@ -63,8 +81,15 @@ function Editor(props)
 
     const onP5DataChange = (property, value) =>
     {
-        let p5 = cloneDeep(p5Data);
+        let p5 = { ...p5Data };
         p5[property] = value;
+        generate(p5);
+    }
+
+    const onP5StringDefChange = (index, property, value) =>
+    {
+        let p5 = { ...p5Data };
+        p5.stringsDef[index][property] = value;
         generate(p5);
     }
 
@@ -85,9 +110,18 @@ function Editor(props)
                         </div>
                     </Paper>
                     <Paper elevation={1}>
-                        <TextField label='width' value={p5Data.width} onChange={e => onP5DataChange('width', e.target.value)} variant="standard" />
-                        <TextField label='height' value={p5Data.height} onChange={e => onP5DataChange('height', e.target.value)} variant="standard" />
-                        <TextField label='pins' value={p5Data.pins_amount} onChange={e => onP5DataChange('pins_amount', e.target.value)} variant="standard" />
+                        <TextField label='width' defaultValue={p5Data.width} onBlur={e => onP5DataChange('width', e.target.value)} variant="standard" />
+                        <TextField label='height' defaultValue={p5Data.height} onBlur={e => onP5DataChange('height', e.target.value)} variant="standard" />
+                        <TextField label='pins' defaultValue={p5Data.pins_amount} onBlur={e => onP5DataChange('pins_amount', e.target.value)} variant="standard" />
+                        {p5Data && p5Data.stringsDef.map(stringDef =>
+                        {
+                            return (<Paper elevation={3} key={stringDef.index}>
+                                <TextField label='steps' defaultValue={stringDef.steps} onBlur={e => onP5StringDefChange(stringDef.index, 'steps', e.target.value)} variant="standard" />
+                                <TextField label='start pin' defaultValue={stringDef.start_pin} onBlur={e => onP5StringDefChange(stringDef.index, 'start_pin', e.target.value)} variant="standard" />
+                                <TextField label='move right' defaultValue={stringDef.move_right} onBlur={e => onP5StringDefChange(stringDef.index, 'move_right', e.target.value)} variant="standard" />
+                                <TextField label='color' defaultValue={stringDef.color} onBlur={e => onP5StringDefChange(stringDef.index, 'color', e.target.value)} variant="standard" />
+                            </Paper>)
+                        })}
                     </Paper>
                 </Stack>
             </Container>
